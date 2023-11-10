@@ -22,6 +22,8 @@ const game = {
         // The predetermined net win the round (amount * totalMultiplier)
         net: 0,
 
+        // Last roll
+        lastRoll: 0,
         // The index of the current roll in the rolls array
         rollsIndex: 0,
         // The running total of the rolls
@@ -40,30 +42,19 @@ const game = {
     },
     /**
      * @description Requests a new round from the server
-     * @param {number} wager The bet amount for the round
-     * @returns {{ error: string }|{ chainStartPoint: number, amount:number, rolls: number[], net: number }} Either an error message or the result of the round
-     * @example
-     * const result = requestRound(100);
-     * if (result.error) {
-     *  console.error(result.error);
-     * } else {
-     *  console.log(`You rolled ${result.rolls} and ${result.net > 0 ? "won" : "lost"} ${result.amount}!`);
-     * }
+     * @param {number} wager The amount of the wager
      */
-    requestRound: (wager) => {
-        return fetch("/round", {
+    requestRound: async (wager) => {
+        const round = await fetch("/play", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({ amount: wager })
         }).then(async response => await response.json());
-    },
-    /**
-     * @description Sets the current round using a result from requestRound
-     * @param {{ chainStartPoint: number, amount: number, rolls: number[], net: number }} round The result of a round from requestRound
-     */
-    setRound: (round) => {
+
+        if (round.error) throw new Error(round.error);
+
         game.currentRound = {
             chainStartPoint: round.chainStartPoint,
             amount: round.amount,
@@ -71,7 +62,7 @@ const game = {
             net: round.net,
             rollsIndex: 0,
             multiplier: 0,
-            willExplode: round.rolls.some((_, i) => rolls.slice(0, i + 1).reduce((acc, curr) => acc + curr, 0) < 0),
+            willExplode: round.rolls.some((_, i) => round.rolls.slice(0, i + 1).reduce((acc, curr) => acc + curr, 0) < 0),
         };
     },
     /**
@@ -80,6 +71,7 @@ const game = {
      */
     incrementRound: () => {
         const roll = game.currentRound.rolls[game.currentRound.rollsIndex];
+        game.currentRound.lastRoll = roll;
         game.currentRound.rollsIndex++;
         game.currentRound.multiplier += roll;
         return {
@@ -90,67 +82,78 @@ const game = {
     },
 }
 
+const GUI = {
+    // The main camera
+    camera: null,
+    // The main GUI texture 
+    texture: null,
+    // The text block for the multiplier
+    multiplierBlock: null,
+
+    // The current tiles
+    tiles: [],
+    /**
+     * @description Renders the tiles
+     * @param {number} dim The dimension of the grid of tiles
+     */ 
+    renderTiles: (dim) => {
+        const onTileClick = (tile) => {
+            GUI.tiles.splice(GUI.tiles.indexOf(tile), 1);
+            
+            const roll = game.incrementRound();
+
+            // TODO: Place the roll # on the tile.
+            tile.text = roll.roll;
+            tile.onPointerUpObservable.clear();
+
+            // TODO: Generate random roll #s for the other tiles.
+            for (const otherTile of GUI.tiles) {
+                otherTile.onPointerUpObservable.clear();
+            }
+
+            // TODO: Update the multiplier block.
+            GUI.multiplierBlock.text = `x${roll.newMultiplier.toFixed(2)}`;
+
+        }
+
+        for (let i = 0; i < dim * dim; i++) {
+            const tile = BABYLON.GUI.Button.CreateSimpleButton("tile" + i, "?");
+            tile.width = "100px";
+            tile.height = "100px";
+            tile.color = "white";
+            tile.background = "grey";
+            tile.thickness = 0;
+            tile.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+
+            tile.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT + i % 2;
+            tile.left = i % 2 === 0 ? "30%" : "70%";
+            tile.top = i < 2 ? "-50px" : "50px";
+
+            tile.onPointerUpObservable.add(() => onTileClick(tile));
+
+            GUI.texture.addControl(tile);
+            GUI.tiles.push(tile);
+        }
+    }
+}
+
 const createScene = () => {
-    // Set up camera and light
-    const camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 5, -10), scene);
-    camera.setTarget(BABYLON.Vector3.Zero());
-    const light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
-    light.intensity = 0.7;
+    // Create the scene camera
+    GUI.camera = new BABYLON.FreeCamera("main_camera", new BABYLON.Vector3(0, 5, -10), scene);
+    GUI.camera.setTarget(BABYLON.Vector3.Zero());
 
-    // GUI
-    const advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+    // Initialize the GUI
+    GUI.texture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
 
-    // Multiplier box
-    const multiplierText = new BABYLON.GUI.TextBlock();
-    multiplierText.text = "Multiplier: x1.0";
-    multiplierText.color = "white";
-    multiplierText.fontSize = 24;
-    multiplierText.resizeToFit = true;
-    multiplierText.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-    multiplierText.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
-    advancedTexture.addControl(multiplierText);
-
-    // Queue for previously selected tiles
-    const stackPanel = new BABYLON.GUI.StackPanel();
-    stackPanel.width = "220px";
-    stackPanel.fontSize = "14px";
-    stackPanel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-    stackPanel.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
-    advancedTexture.addControl(stackPanel);
-
-    // Function to add text to the stack panel (queue)
-    const addToQueue = (value) => {
-        var text = new BABYLON.GUI.TextBlock();
-        text.text = "Tile: " + value;
-        text.height = "30px";
-        text.color = "white";
-        stackPanel.addControl(text);
-    }
-
-    // Tiles
-    for (let i = 0; i < 4; i++) {
-        let tile = BABYLON.GUI.Button.CreateSimpleButton("tile" + i, "?");
-        tile.width = "100px";
-        tile.height = "100px";
-        tile.color = "white";
-        tile.background = "grey";
-        tile.thickness = 0;
-        tile.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-
-        // Calculate horizontal alignment based on tile index
-        tile.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT + i % 2;
-        tile.left = i % 2 === 0 ? "30%" : "70%";
-        tile.top = i < 2 ? "-50px" : "50px";
-
-        tile.onPointerUpObservable.add(function () {
-            // TODO: Replace with the actual call to get the value for the tile
-            let value = Math.floor(Math.random() * 100); // Placeholder random value
-            this.children[0].text = value.toString();
-            addToQueue(value);
-        });
-
-        advancedTexture.addControl(tile);
-    }
+    // Initial state of the block
+    GUI.multiplierBlock = new BABYLON.GUI.TextBlock();
+    GUI.multiplierBlock.text = "xX.X"; // Placeholder text
+    GUI.multiplierBlock.color = "white"; // Font color
+    GUI.multiplierBlock.background = "black"; // Background color
+    GUI.multiplierBlock.fontSize = 24;
+    GUI.multiplierBlock.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+    GUI.multiplierBlock.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+    GUI.texture.addControl(GUI.multiplierBlock);
 
     return scene;
 }
