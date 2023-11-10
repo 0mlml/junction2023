@@ -11,6 +11,85 @@ window.addEventListener("resize", () => {
     engine.resize();
 });
 
+const game = {
+    currentRound: {
+        // The hashchain start point for the round
+        chainStartPoint: 0,
+        // The wager for the round
+        amount: 0,
+        // The rolls for the round
+        rolls: [],
+        // The predetermined net win the round (amount * totalMultiplier)
+        net: 0,
+
+        // The index of the current roll in the rolls array
+        rollsIndex: 0,
+        // The running total of the rolls
+        multiplier: 0,
+        // Does the multiplier go negative?
+        willExplode: false,
+    },
+    /**
+     * @description Fetches the user's money from the server
+     * @returns {{money: number, baseMoney: number}} The user's money and the base money
+     */
+    fetchMoney: () => {
+        return fetch("/money").then(async response => {
+            return await response.json();
+        });
+    },
+    /**
+     * @description Requests a new round from the server
+     * @param {number} wager The bet amount for the round
+     * @returns {{ error: string }|{ chainStartPoint: number, amount:number, rolls: number[], net: number }} Either an error message or the result of the round
+     * @example
+     * const result = requestRound(100);
+     * if (result.error) {
+     *  console.error(result.error);
+     * } else {
+     *  console.log(`You rolled ${result.rolls} and ${result.net > 0 ? "won" : "lost"} ${result.amount}!`);
+     * }
+     */
+    requestRound: (wager) => {
+        return fetch("/round", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ amount: wager })
+        }).then(async response => await response.json());
+    },
+    /**
+     * @description Sets the current round using a result from requestRound
+     * @param {{ chainStartPoint: number, amount: number, rolls: number[], net: number }} round The result of a round from requestRound
+     */
+    setRound: (round) => {
+        game.currentRound = {
+            chainStartPoint: round.chainStartPoint,
+            amount: round.amount,
+            rolls: round.rolls,
+            net: round.net,
+            rollsIndex: 0,
+            multiplier: 0,
+            willExplode: round.rolls.some((_, i) => rolls.slice(0, i + 1).reduce((acc, curr) => acc + curr, 0) < 0),
+        };
+    },
+    /**
+     * @description Increments the current round's rollsIndex and multiplier
+     * @returns {{ roll: number, newMultiplier: number, didExplode: boolean }} The change in multiplier, new multiplier, and if it was a loss
+     */
+    incrementRound: () => {
+        const roll = game.currentRound.rolls[game.currentRound.rollsIndex];
+        game.currentRound.rollsIndex++;
+        game.currentRound.multiplier += roll;
+        return {
+            roll,
+            newMultiplier: game.currentRound.multiplier,
+            didExplode: game.currentRound.multiplier < 0,
+        };
+    },
+}
+
 const createScene = () => {
     // Set up camera and light
     const camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 5, -10), scene);
