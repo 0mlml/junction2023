@@ -15,9 +15,10 @@
         }
 
         const askServerForMoney = () => {
-            fetch("/money").then(resp => {
-                money = resp.money;
-                const baseMoney = resp.baseMoney;
+            fetch("/money").then(async resp => {
+                const body = await resp.json()
+                money = body.money;
+                const baseMoney = body.baseMoney;
 
                 document.getElementById("moneyBox").innerText = ` BaseMoney: ${baseMoney} ; MyMoney: ${money}`;
             });
@@ -25,20 +26,19 @@
 
         const playGame = () => {
             const amount = document.getElementById("betAmount").value;
+            if (amount <= 0) { 
+                return alert("Bet should be >0");
+            }
 
             fetch("/play", {
                 method: "POST",
-                body: {
-                    amount
-                }
-            }).then(resp => {
-                const { chainStartPoint, amount, rolls } = resp;
+                body: `{"amount":${amount}}`
+            }).then(async resp => {
+                const { chainStartPoint, amount, rolls, net } = await resp.json();
 
                 document.getElementById("lastRoundResult").innerText = `ChainStartPoint: ${chainStartPoint} ; Amount: ${amount} ; Rolls: ${rolls}; Net: ${net}`
-                document.getElementById("betAmount").value = 0;
 
-                money -= amount;
-                money += net;
+                askServerForMoney();
             });
         }
 
