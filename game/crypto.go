@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"sync"
 	"time"
 )
 
@@ -103,19 +104,50 @@ func CryptoInit() {
 
 type Game struct {
 	ChainStartPoint int       `json:"chain_start_point"`
+	Amount          float64   `json:"amount"`
 	Rolls           []float64 `json:"rolls"`
+	Net             float64   `json:"net"`
 }
 
 var (
 	chainIndex = 0
+	chainLock  = sync.Mutex{}
 )
 
-func NewGame() *Game {
-	chainIndex++
-	return &Game{
-		ChainStartPoint: chainIndex,
-		Rolls:           make([]float64, 5),
+func NewGame(amount float64) *Game {
+	if chainIndex >= chainLength {
+		panic("🚨🚨 bruhhhhhhhh🤯🤯🤯🤯🤯🤯🤯 🚨🚨")
 	}
+
+	chainLock.Lock()
+
+	rolls := make([]float64, 5)
+
+	for i := 0; i < 5; i++ {
+		rolls[i] = CalculateMultiplier(i+1, hashChain[chainIndex])
+		chainIndex++
+	}
+
+	chainLock.Unlock()
+
+	game := &Game{
+		ChainStartPoint: chainIndex,
+		Amount:          amount,
+		Rolls:           rolls,
+		Net:             0,
+	}
+
+	game.Net = game.Evaluate()
+
+	return game
+}
+
+func (g *Game) Evaluate() float64 {
+	total := 0.0
+	for _, roll := range g.Rolls {
+		total += roll
+	}
+	return total * float64(g.Amount)
 }
 
 // Run a simulation of the game.
