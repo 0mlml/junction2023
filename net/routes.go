@@ -11,9 +11,11 @@ import (
 )
 
 func ServeStatic(r *gin.Engine) {
-	r.Static("/static", "./static")
-	r.StaticFile("/favicon.ico", "./static/favicon.ico")
-	r.LoadHTMLFiles("./static/debugui.html")
+	r.StaticFile("/app.js", "./static/app.js")
+	r.StaticFile("/script.js", "./static/script.js")
+	r.StaticFile("/styles.css", "./static/styles.css")
+
+	r.LoadHTMLFiles("./static/index.html")
 	r.GET("/", serveHome)
 	r.GET("/money", serveMoney)
 	r.POST("/play", handlePlay)
@@ -37,7 +39,7 @@ func serveHome(c *gin.Context) {
 	// Put them in the user map
 	game.AddUser(cookie)
 
-	c.HTML(http.StatusOK, "debugui.html", nil)
+	c.HTML(http.StatusOK, "index.html", nil)
 }
 
 func serveMoney(c *gin.Context) {

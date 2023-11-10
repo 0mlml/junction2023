@@ -103,7 +103,7 @@ func CryptoInit() {
 }
 
 type Game struct {
-	ChainStartPoint int       `json:"chain_start_point"`
+	ChainStartPoint int       `json:"chainStartPoint"`
 	Amount          float64   `json:"amount"`
 	Rolls           []float64 `json:"rolls"`
 	Net             float64   `json:"net"`

@@ -1,20 +1,28 @@
-var canvas = document.getElementById("renderCanvas"); // Get the canvas element 
-var engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
+const canvas = document.getElementById("renderCanvas");
+const engine = new BABYLON.Engine(canvas, true);
+const scene = new BABYLON.Scene(engine);
 
-var createScene = function () {
-    var scene = new BABYLON.Scene(engine);
+engine.runRenderLoop(() => {
+    scene.render();
+});
 
+// Watch for a resize event and resize the canvas accordingly
+window.addEventListener("resize", () => {
+    engine.resize();
+});
+
+const createScene = () => {
     // Set up camera and light
-    var camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 5, -10), scene);
+    const camera = new BABYLON.FreeCamera("camera1", new BABYLON.Vector3(0, 5, -10), scene);
     camera.setTarget(BABYLON.Vector3.Zero());
-    var light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
+    const light = new BABYLON.HemisphericLight("light1", new BABYLON.Vector3(0, 1, 0), scene);
     light.intensity = 0.7;
 
     // GUI
-    var advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+    const advancedTexture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
 
     // Multiplier box
-    var multiplierText = new BABYLON.GUI.TextBlock();
+    const multiplierText = new BABYLON.GUI.TextBlock();
     multiplierText.text = "Multiplier: x1.0";
     multiplierText.color = "white";
     multiplierText.fontSize = 24;
@@ -24,7 +32,7 @@ var createScene = function () {
     advancedTexture.addControl(multiplierText);
 
     // Queue for previously selected tiles
-    var stackPanel = new BABYLON.GUI.StackPanel();
+    const stackPanel = new BABYLON.GUI.StackPanel();
     stackPanel.width = "220px";
     stackPanel.fontSize = "14px";
     stackPanel.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
@@ -32,17 +40,17 @@ var createScene = function () {
     advancedTexture.addControl(stackPanel);
 
     // Function to add text to the stack panel (queue)
-    function addToQueue(value) {
+    const addToQueue = (value) => {
         var text = new BABYLON.GUI.TextBlock();
         text.text = "Tile: " + value;
         text.height = "30px";
         text.color = "white";
-        stackPanel.addControl(text); 
+        stackPanel.addControl(text);
     }
 
     // Tiles
     for (let i = 0; i < 4; i++) {
-        let tile = new BABYLON.GUI.Button.CreateSimpleButton("tile" + i, "?");
+        let tile = BABYLON.GUI.Button.CreateSimpleButton("tile" + i, "?");
         tile.width = "100px";
         tile.height = "100px";
         tile.color = "white";
@@ -66,69 +74,6 @@ var createScene = function () {
     }
 
     return scene;
-};
+}
 
-var scene = createScene(); //Call the createScene function
-
-engine.runRenderLoop(function () { // Register a render loop to repeatedly render the scene
-    scene.render();
-});
-
-window.addEventListener("resize", function () { // Watch for browser/canvas resize events
-    engine.resize();
-});
-
-//const canvas = document.getElementById("renderCanvas"); // Get the canvas element
-//const engine = new BABYLON.Engine(canvas, true); // Generate the BABYLON 3D engine
-//
-//window.addEventListener('DOMContentLoaded', () => {
-//    var canvas = document.getElementById('renderCanvas');
-//    var engine = new BABYLON.Engine(canvas, true);
-//
-//    var createScene = function () {
-//        var scene = new BABYLON.Scene(engine);
-//        scene.clearColor = new BABYLON.Color4(0, 0, 0, 0);
-//
-//        var camera = new BABYLON.ArcRotateCamera("Camera", Math.PI / 2, Math.PI / 2, 2, BABYLON.Vector3.Zero(), scene);
-//        camera.attachControl(canvas, true);
-//
-//        var light = new BABYLON.HemisphericLight("light", new BABYLON.Vector3(0, 1, 0), scene);
-//        light.intensity = 0.7;
-//
-//        // Number display
-//        var numberDisplay = document.getElementById('numberDisplay');
-//
-//        // Slider
-//        var slider = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
-//        var sliderBar = new BABYLON.GUI.Slider();
-//        sliderBar.minimum = 0;
-//        sliderBar.maximum = 100;
-//        sliderBar.value = 50;
-//        sliderBar.height = "20px";
-//        sliderBar.width = "200px";
-//        sliderBar.top = "-50px";
-//        sliderBar.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-//        sliderBar.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
-//        sliderBar.onValueChangedObservable.add(function(value) {
-//            numberDisplay.innerHTML = value.toFixed(2);
-//        });
-//        slider.addControl(sliderBar);
-//
-//        return scene;
-//    };
-//
-//});
-//
-//const scene = createScene(); //Call the createScene function
-//// Register a render loop to repeatedly render the scene
-//engine.runRenderLoop(() => {
-//    scene.render();
-//});
-//
-//// Watch for browser/canvas resize events
-//window.addEventListener("resize", () => {
-//    engine.resize();
-//});
-//
-//
-
+createScene();
