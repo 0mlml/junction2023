@@ -1,11 +1,13 @@
-# Ballcancer 2023
+# Miltiplier Frenzy
 
-In the world of online gambling games, simplicity often leads to the most addictive and engaging experiences. "Multiplier Mayhem" is a testament to this philosophy, offering a straightforward yet exhilarating gaming experience. This game combines the thrill of chance with strategic decision-making, all wrapped up in a minimalist, user-friendly interface.
+In the world of online gambling games, simplicity often leads to the most addictive and engaging experiences. "Multiplier Frenzy" is a testament to this philosophy, offering a straightforward yet exhilarating gaming experience. This game combines the thrill of chance with strategic decision-making, all wrapped up in a minimalist, user-friendly interface.
 
 # Game Concept
-"Multiplier Mayhem" is a game of risk and reward, where players place a wager and then navigate through a series of random tiles, each holding hidden multipliers or traps. The goal is to accumulate as high a multiplier as possible without hitting a negative value, which ends the game.
+
+"Multiplier Frenzy" is a game of risk and reward, where players place a wager and then navigate through a series of random tiles, each holding hidden multipliers or traps. The goal is to accumulate as high a multiplier as possible without hitting a negative value, which ends the game.
 
 # Gameplay Mechanics
+
 Initial Wager: Players start by placing their wager. This amount is the baseline for their potential winnings.
 
 ![](./static/img/balls1.png)
