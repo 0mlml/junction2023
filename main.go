@@ -2,8 +2,8 @@ package main
 
 import (
 	"log"
-	"luckydog/ballcancer/game"
-	"luckydog/ballcancer/net"
+	"luckydog/junction2023/game"
+	"luckydog/junction2023/net"
 
 	"github.com/gin-gonic/gin"
 )

@@ -81,6 +81,16 @@ func CalculateMultiplier(rollNumber int, hash string) float64 {
 		min = -0.3
 	}
 
+	boostChance := 5                 // 5% chance
+	lastDigits := hash[len(hash)-4:] // Extract the last 4 digits of the hash
+	n := new(big.Int)
+	n.SetString(lastDigits, 16)
+	if int(n.Int64()%100) < boostChance {
+		// Define the boost factor. For example, a boost of 1.5 to 2 times the regular max.
+		boostFactor := 1.5 + (randomFloat * (2 - 1.5))
+		return max * boostFactor
+	}
+
 	return min + randomFloat*(max-min)
 }
 
@@ -89,7 +99,7 @@ func CalculateMultiplier(rollNumber int, hash string) float64 {
 func CryptoInit() {
 	// Randomize the seed
 	// TODO: Remove, this is for debug
-	// publicSeed := fmt.Sprintf("%064x", rand.Int63())
+	// publicSeed2 := fmt.Sprintf("%064x", rand.Int63())
 
 	start := time.Now()
 	hashChain = GenerateHashChain(secretKey, publicSeed, chainLength)

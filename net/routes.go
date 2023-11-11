@@ -4,16 +4,19 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"log"
-	"luckydog/ballcancer/game"
+	"luckydog/junction2023/game"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
 func ServeStatic(r *gin.Engine) {
+	r.StaticFile("/babylon.js", "./static/babylon.js")
+	r.StaticFile("/babylon.gui.js", "./static/babylon.gui.js")
 	r.StaticFile("/app.js", "./static/app.js")
 	r.StaticFile("/script.js", "./static/script.js")
 	r.StaticFile("/styles.css", "./static/styles.css")
+	r.StaticFile("/flare.png", "./static/flare.png")
 
 	r.LoadHTMLFiles("./static/index.html")
 	r.GET("/", serveHome)

@@ -1,4 +1,4 @@
-module luckydog/ballcancer
+module luckydog/junction2023
 
 go 1.21.3
 
