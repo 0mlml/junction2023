@@ -11,8 +11,10 @@ import (
 )
 
 func ServeStatic(r *gin.Engine) {
-	r.Static("/static", "./static")
-	r.StaticFile("/favicon.ico", "./static/favicon.ico")
+	r.StaticFile("/app.js", "./static/app.js")
+	r.StaticFile("/script.js", "./static/script.js")
+	r.StaticFile("/styles.css", "./static/styles.css")
+
 	r.LoadHTMLFiles("./static/index.html")
 	r.GET("/", serveHome)
 	r.GET("/money", serveMoney)
@@ -48,7 +50,7 @@ func serveMoney(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"money": game.GetBalanceByCookie(cookie), "baseMoney": game.GetBaseMoney()})
+	c.JSON(http.StatusOK, gin.H{"money": game.GetUserByCookie(cookie).Balance, "baseMoney": game.GetBaseMoney()})
 }
 
 type PlayRequest struct {
@@ -76,14 +78,16 @@ func handlePlay(c *gin.Context) {
 		return
 	}
 
-	if game.GetBalanceByCookie(cookie) < playRequest.Amount {
+	if !game.GetUserByCookie(cookie).Play(playRequest.Amount) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "not enough balance"})
 		return
 	}
 
 	playedGame := game.NewGame(playRequest.Amount)
 
-	log.Printf("User %s played %f, balance: %f\n", cookie, playRequest.Amount, game.GetBalanceByCookie(cookie))
+	game.GetUserByCookie(cookie).Mod(playedGame.Net)
+
+	log.Printf("User %s played %f, balance: %f\n", cookie, playRequest.Amount, game.GetUserByCookie(cookie).Balance)
 
 	c.JSON(http.StatusOK, playedGame)
 }

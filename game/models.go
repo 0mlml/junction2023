@@ -35,11 +35,11 @@ func (u *User) ShouldCull() bool {
 	return u.Death < time.Now().Unix()
 }
 
-func GetBalanceByCookie(cookie string) float64 {
+func GetUserByCookie(cookie string) *User {
 	if user, ok := users[cookie]; ok {
-		return user.Balance
+		return user
 	}
-	return -1
+	return &User{}
 }
 
 func AddUser(cookie string) {

@@ -15,9 +15,10 @@
         }
 
         const askServerForMoney = () => {
-            fetch("/money").then(resp => {
-                money = resp.money;
-                const baseMoney = resp.baseMoney;
+            fetch("/money").then(async resp => {
+                const body = await resp.json()
+                money = body.money;
+                const baseMoney = body.baseMoney;
 
                 document.getElementById("moneyBox").innerText = ` BaseMoney: ${baseMoney} ; MyMoney: ${money}`;
             });
@@ -25,20 +26,19 @@
 
         const playGame = () => {
             const amount = document.getElementById("betAmount").value;
+            if (amount <= 0) {
+                return alert("Bet should be > 0");
+            }
 
             fetch("/play", {
                 method: "POST",
-                body: {
-                    amount
-                }
-            }).then(resp => {
-                const { chainStartPoint, amount, rolls } = resp;
+                body: `{"amount":${amount}}`
+            }).then(async resp => {
+                const { chainStartPoint, amount, rolls, net } = await resp.json();
 
                 document.getElementById("lastRoundResult").innerText = `ChainStartPoint: ${chainStartPoint} ; Amount: ${amount} ; Rolls: ${rolls}; Net: ${net}`
-                document.getElementById("betAmount").value = 0;
 
-                money -= amount;
-                money += net;
+                askServerForMoney();
             });
         }
 
@@ -51,51 +51,52 @@
     </script>
     <style>
         /* Inline stylesheet */
-    /* General Styles */
-    body {
-        font-family: Arial, sans-serif;
-        text-align: center;
-        padding: 20px;
-    }
+        /* General Styles */
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 20px;
+        }
 
-    /* Styling for textboxes */
-    .textbox {
-        margin: 10px 0;
-        padding: 10px;
-        border: 1px solid #ddd;
-        background-color: #f9f9f9;
-        width: 300px; /* Adjust as needed */
-        text-align: left;
-        display: inline-block;
-    }
+        /* Styling for textboxes */
+        .textbox {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background-color: #f9f9f9;
+            width: 300px;
+            /* Adjust as needed */
+            text-align: left;
+            display: inline-block;
+        }
 
-    /* Styling for input field */
-    #betAmount {
-        padding: 5px;
-        margin: 10px 0;
-        width: 200px; /* Adjust as needed */
-    }
+        /* Styling for input field */
+        #betAmount {
+            padding: 5px;
+            margin: 10px 0;
+            width: 200px;
+            /* Adjust as needed */
+        }
 
-    /* Styling for buttons */
-    button {
-        padding: 10px 15px;
-        margin: 10px 5px;
-        border: none;
-        background-color: #007bff;
-        color: white;
-        cursor: pointer;
-        transition: background-color 0.3s ease;
-    }
+        /* Styling for buttons */
+        button {
+            padding: 10px 15px;
+            margin: 10px 5px;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
 
-    button:hover {
-        background-color: #0056b3;
-    }
-
+        button:hover {
+            background-color: #0056b3;
+        }
     </style>
 </head>
 
 <body>
-    <div id="moneyBox">Money: $0</div>div>
+    <div id="moneyBox">Money: $0</div>
     <div id="lastRoundResult">Last Round: N/A</div>
     <div id="cookiebox">Cookie: None</div>
     <input type="number" id="betAmount" placeholder="Enter amount">
