@@ -73,7 +73,7 @@ func handlePlay(c *gin.Context) {
 		return
 	}
 
-	if playRequest.Amount < 1 {
+	if playRequest.Amount <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "amount must be positive"})
 		return
 	}
