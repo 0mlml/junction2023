@@ -8,7 +8,7 @@ In the world of online gambling games, simplicity often leads to the most addict
 # Gameplay Mechanics
 Initial Wager: Players start by placing their wager. This amount is the baseline for their potential winnings.
 
-![](balls1.png)
+![](./static/img/balls1.png)
 
 - The Grid of Mystery: After the wager, players are presented with a grid of face-down tiles. The number of tiles can vary depending on the game's difficulty level.
 
@@ -28,5 +28,5 @@ The game boasts a clean, minimalist interface that is easy to navigate:
 - A `Cash Out` button allows players to end the game at their discretion.
 - Visual and auditory cues enhance the excitement of revealing tiles.
 
-![](balls2.png)
+![](./static/img/balls2.png)
 
