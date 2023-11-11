@@ -63,7 +63,7 @@ func handlePlay(c *gin.Context) {
 	if err != nil {
 		// give buddy a cookie
 		cookie = randomCookie(32)
-		c.SetCookie("brocookie", cookie, 0, "/", "localhost", false, false)
+		c.SetCookie("brocookie", cookie, 0, "/", "j2023.mlml.dev", false, false)
 	}
 
 	playRequest := PlayRequest{}
@@ -75,6 +75,12 @@ func handlePlay(c *gin.Context) {
 
 	if playRequest.Amount <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "amount must be positive"})
+		return
+	}
+
+	if game.GetUserByCookie(cookie).Death < 0 {
+		// c.Redirect(http.StatusTemporaryRedirect, "/")
+		c.JSON(http.StatusTemporaryRedirect, gin.H{"error": "data not found. please refresh"})
 		return
 	}
 

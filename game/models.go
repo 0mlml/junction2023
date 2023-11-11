@@ -40,10 +40,13 @@ func (u *User) ShouldCull() bool {
 
 func GetUserByCookie(cookie string) *User {
 	if user, ok := users[cookie]; ok {
-		user.Death = time.Now().Unix() + 120
+		user.Death = time.Now().Unix() + 360
 		return user
 	}
-	return &User{}
+	return &User{
+		Balance: 0,
+		Death:   -1,
+	}
 }
 
 func AddUser(cookie string) {

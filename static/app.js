@@ -140,7 +140,7 @@ const GUI = {
 
             if (roll.didExplode) {
                 alert(`Instant death condition (multiplier < 0) reached. You lost ${game.currentRound.amount}€.)`);
-                
+
                 GUI.wagerBlock.top = "-150px";
                 GUI.wagerBlock.isVisible = true;
                 GUI.playButton.top = "150px";
@@ -313,119 +313,147 @@ const GUI = {
             GUI.texture.removeControl(moneyChangeBlock);
             moneyChangeBlock.dispose();
         }, 1500);
-    }
+    },
+    /**
+     * @description Try to go next using keybind
+     */
+    tryGoNext: () => {
+        console.log("tryGoNext")
+        if (GUI.playButton.isVisible) {
+            GUI.playButton.onPointerUpObservable.notifyObservers();
+        }
+        if (GUI.nextRoundButton.isVisible) {
+            GUI.nextRoundButton.onPointerUpObservable.notifyObservers();
+        }
+        if (GUI.tiles.length > 0) {
+            GUI.tiles[Math.floor(Math.random() * GUI.tiles.length)].onPointerUpObservable.notifyObservers();
+        }
+    },
 }
 
 const createScene = () => {
-    // Create the scene camera
-    GUI.camera = new BABYLON.ArcRotateCamera("cam", -Math.PI / 2, Math.PI / 2, 10, BABYLON.Vector3.Zero());
-    GUI.bgCamera = new BABYLON.ArcRotateCamera("bgcam", -Math.PI / 2, Math.PI / 2, 10, BABYLON.Vector3.Zero());
+        // Create the scene camera
+        GUI.camera = new BABYLON.ArcRotateCamera("cam", -Math.PI / 2, Math.PI / 2, 10, BABYLON.Vector3.Zero());
+        GUI.bgCamera = new BABYLON.ArcRotateCamera("bgcam", -Math.PI / 2, Math.PI / 2, 10, BABYLON.Vector3.Zero());
 
-    const renderPipeline = new BABYLON.DefaultRenderingPipeline("renderingPipeline", true, scene, [GUI.camera]);
-    renderPipeline.samples = 4;
-    renderPipeline.fxaaEnabled = true;
+        const renderPipeline = new BABYLON.DefaultRenderingPipeline("renderingPipeline", true, scene, [GUI.camera]);
+        renderPipeline.samples = 4;
+        renderPipeline.fxaaEnabled = true;
 
-    GUI.camera.wheelDeltaPercentage = 0.01;
+        GUI.camera.wheelDeltaPercentage = 0.01;
 
-    GUI.anchor = new BABYLON.TransformNode("");
+        GUI.anchor = new BABYLON.TransformNode("");
 
-    // Make a bg camera to render the GUI in front
-    GUI.texture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
-    GUI.texture.layer.layerMask = 1 << 7;
-    GUI.bgCamera.layerMask = 1 << 7;
+        // Make a bg camera to render the GUI in front
+        GUI.texture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+        GUI.texture.layer.layerMask = 1 << 7;
+        GUI.bgCamera.layerMask = 1 << 7;
 
-    // Initialize the GUI manager
-    GUI.manager = new BABYLON.GUI.GUI3DManager(scene);
-    GUI.manager.utilityLayer.setRenderCamera(GUI.camera);
+        // Initialize the GUI manager
+        GUI.manager = new BABYLON.GUI.GUI3DManager(scene);
+        GUI.manager.utilityLayer.setRenderCamera(GUI.camera);
 
-    scene.activeCameras = [GUI.camera, GUI.bgCamera];
+        scene.activeCameras = [GUI.camera, GUI.bgCamera];
 
-    // Create the tile panel
-    GUI.tilePanel = new BABYLON.GUI.CylinderPanel();
-    GUI.tilePanel.margin = 0.3;
-    GUI.tilePanel.linkToTransformNode(GUI.anchor);
-    GUI.manager.addControl(GUI.tilePanel);
-    GUI.tilePanel.position.z = -2;
+        // Create the tile panel
+        GUI.tilePanel = new BABYLON.GUI.CylinderPanel();
+        GUI.tilePanel.margin = 0.3;
+        GUI.tilePanel.linkToTransformNode(GUI.anchor);
+        GUI.manager.addControl(GUI.tilePanel);
+        GUI.tilePanel.position.z = -2;
 
-    // Initial state of the money display
-    GUI.moneyDisplay = new BABYLON.GUI.TextBlock();
-    GUI.moneyDisplay.text = "0.00€";
-    GUI.moneyDisplay.color = "white";
-    GUI.moneyDisplay.background = "black";
-    GUI.moneyDisplay.fontSize = 24;
-    GUI.moneyDisplay.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-    GUI.moneyDisplay.left = "40%";
-    GUI.moneyDisplay.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
-    GUI.moneyDisplay.top = "-45%";
-    GUI.texture.addControl(GUI.moneyDisplay);
+        // Initial state of the money display
+        GUI.moneyDisplay = new BABYLON.GUI.TextBlock();
+        GUI.moneyDisplay.text = "0.00€";
+        GUI.moneyDisplay.color = "white";
+        GUI.moneyDisplay.background = "black";
+        GUI.moneyDisplay.fontSize = 24;
+        GUI.moneyDisplay.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        GUI.moneyDisplay.left = "40%";
+        GUI.moneyDisplay.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        GUI.moneyDisplay.top = "-45%";
+        GUI.texture.addControl(GUI.moneyDisplay);
 
-    // Initial state of the money counter
-    GUI.moneyCounter = new BABYLON.GUI.TextBlock();
-    GUI.moneyCounter.text = "0.00€";
-    GUI.moneyCounter.color = "white";
-    GUI.moneyCounter.background = "black";
-    GUI.moneyCounter.fontSize = 24;
-    GUI.moneyCounter.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
-    GUI.moneyCounter.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
-    GUI.moneyCounter.top = "-45%";
-    GUI.texture.addControl(GUI.moneyCounter);
+        // Initial state of the money counter
+        GUI.moneyCounter = new BABYLON.GUI.TextBlock();
+        GUI.moneyCounter.text = "0.00€";
+        GUI.moneyCounter.color = "white";
+        GUI.moneyCounter.background = "black";
+        GUI.moneyCounter.fontSize = 24;
+        GUI.moneyCounter.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        GUI.moneyCounter.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+        GUI.moneyCounter.top = "-45%";
+        GUI.texture.addControl(GUI.moneyCounter);
 
-    game.fetchMoney().then(_ => {
-        GUI.updateMoneyCounter();
-    });
+        game.fetchMoney().then(_ => {
+            GUI.updateMoneyCounter();
+        });
 
-    // Initial state of the multiplier block
-    GUI.multiplierBlock = new BABYLON.GUI.TextBlock();
-    GUI.multiplierBlock.text = "x0.0"; // Placeholder text
-    GUI.multiplierBlock.color = "white"; // Font color
-    GUI.multiplierBlock.background = "black"; // Background color
-    GUI.multiplierBlock.fontSize = 72;
-    GUI.multiplierBlock.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
-    GUI.multiplierBlock.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
-    GUI.texture.addControl(GUI.multiplierBlock);
+        // Initial state of the multiplier block
+        GUI.multiplierBlock = new BABYLON.GUI.TextBlock();
+        GUI.multiplierBlock.text = "x0.0"; // Placeholder text
+        GUI.multiplierBlock.color = "white"; // Font color
+        GUI.multiplierBlock.background = "black"; // Background color
+        GUI.multiplierBlock.fontSize = 72;
+        GUI.multiplierBlock.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
+        GUI.multiplierBlock.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        GUI.texture.addControl(GUI.multiplierBlock);
 
-    // Initial state of the wager block
-    GUI.wagerBlock = new BABYLON.GUI.InputText();
-    GUI.wagerBlock.width = "300px";
-    GUI.wagerBlock.height = "50px";
-    GUI.wagerBlock.color = "white";
-    GUI.wagerBlock.background = "black";
-    GUI.wagerBlock.fontSize = 24;
-    GUI.wagerBlock.placeholderText = "Wager";
-    GUI.wagerBlock.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-    GUI.wagerBlock.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-    GUI.texture.addControl(GUI.wagerBlock);
+        // Initial state of the wager block
+        GUI.wagerBlock = new BABYLON.GUI.InputText();
+        GUI.wagerBlock.width = "300px";
+        GUI.wagerBlock.height = "50px";
+        GUI.wagerBlock.color = "white";
+        GUI.wagerBlock.background = "black";
+        GUI.wagerBlock.fontSize = 24;
+        GUI.wagerBlock.placeholderText = "Wager";
+        GUI.wagerBlock.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        GUI.wagerBlock.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        GUI.texture.addControl(GUI.wagerBlock);
 
-    // Initial state of the play button
-    GUI.playButton = BABYLON.GUI.Button.CreateSimpleButton("play_button", "Play");
-    GUI.playButton.width = "300px";
-    GUI.playButton.height = "50px";
-    GUI.playButton.color = "white";
-    GUI.playButton.background = "black";
-    GUI.playButton.fontSize = 24;
-    GUI.playButton.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-    GUI.playButton.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-    GUI.playButton.top = "100px";
-    GUI.playButton.onPointerUpObservable.add(GUI.onPlayButtonClick);
-    GUI.texture.addControl(GUI.playButton);
+        // Initial state of the play button
+        GUI.playButton = BABYLON.GUI.Button.CreateSimpleButton("play_button", "Play");
+        GUI.playButton.width = "300px";
+        GUI.playButton.height = "50px";
+        GUI.playButton.color = "white";
+        GUI.playButton.background = "black";
+        GUI.playButton.fontSize = 24;
+        GUI.playButton.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        GUI.playButton.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        GUI.playButton.top = "100px";
+        GUI.playButton.onPointerUpObservable.add(GUI.onPlayButtonClick);
+        GUI.texture.addControl(GUI.playButton);
 
-    // Initial state of the next round button
-    GUI.nextRoundButton = BABYLON.GUI.Button.CreateSimpleButton("next_round_button", "Next Round");
-    GUI.nextRoundButton.width = "300px";
-    GUI.nextRoundButton.height = "50px";
-    GUI.nextRoundButton.color = "white";
-    GUI.nextRoundButton.background = "black";
-    GUI.nextRoundButton.fontSize = 24;
-    GUI.nextRoundButton.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-    GUI.nextRoundButton.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
-    GUI.nextRoundButton.top = "320px";
-    GUI.nextRoundButton.isVisible = false;
-    GUI.nextRoundButton.onPointerUpObservable.add(GUI.onNextRoundButtonClick);
-    GUI.texture.addControl(GUI.nextRoundButton);
+        // Initial state of the next round button
+        GUI.nextRoundButton = BABYLON.GUI.Button.CreateSimpleButton("next_round_button", "Next Round");
+        GUI.nextRoundButton.width = "300px";
+        GUI.nextRoundButton.height = "50px";
+        GUI.nextRoundButton.color = "white";
+        GUI.nextRoundButton.background = "black";
+        GUI.nextRoundButton.fontSize = 24;
+        GUI.nextRoundButton.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+        GUI.nextRoundButton.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
+        GUI.nextRoundButton.top = "320px";
+        GUI.nextRoundButton.isVisible = false;
+        GUI.nextRoundButton.onPointerUpObservable.add(GUI.onNextRoundButtonClick);
+        GUI.texture.addControl(GUI.nextRoundButton);
 
-    console.info("Initialized GUI")
+        // Register keybindings
+        document.addEventListener('keydown', (event) => {
+            if (event.code === "Space") {
+                GUI.tryGoNext();
+            }
+            if (event.code === "KeyR") {
+                GUI.tryGoNext();
+            }
+            if (event.code === "Enter") {
+                GUI.tryGoNext();
+            }
+          });
 
-    return scene;
-}
+        console.info("Initialized GUI")
+
+        return scene;
+    }
 
 createScene();
