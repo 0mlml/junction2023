@@ -13,7 +13,7 @@ const (
 	// The secret key is used to generate the hash chain.
 	// This would be a secret value that only the server knows.
 	// It should be published after the game is over to prove that the game was fair.
-	secretKey = "superdupercanceroftheballskey"
+	secretKey = "supersecretkey"
 	// The public seed is used to generate the first hash in the chain.
 	// This would be a public value that anyone can see.
 	// Make it something that you cannot know in advance (e.g. the hash of a future block in the BTC blockchain).

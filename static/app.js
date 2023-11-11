@@ -88,10 +88,16 @@ const game = {
 const GUI = {
     // The main camera
     camera: null,
-    // The main GUI texture 
+    // Anchor
+    anchor: null,
+    // 3D Manager
+    manager: null,
+    // The texture
     texture: null,
     // The text block for the multiplier
     multiplierBlock: null,
+    // Tile cylinder panel
+    tilePanel: null,
     // The current tiles
     tiles: [],
     /**
@@ -104,11 +110,13 @@ const GUI = {
 
             const roll = game.incrementRound();
 
-            tile.textBlock.text = `x${roll.roll.toFixed(2)}`;
+            tile.content.text = `x${roll.roll.toFixed(2)}`;
+            tile.plateMaterial.diffuseColor = roll.roll < 0 ? BABYLON.Color3.FromHexString("#AA5555") : BABYLON.Color3.FromHexString("#55AA55");
             tile.onPointerUpObservable.clear();
 
             for (const otherTile of tilesNotClicked) {
-                otherTile.textBlock.text = `x${((Math.random() - 0.3) * -2).toFixed(2)}`
+                otherTile.content.text = `x${((Math.random() - 0.3) * -2).toFixed(2)}`
+                otherTile.plateMaterial.diffuseColor = BABYLON.Color3.FromHexString("#222");
                 otherTile.onPointerUpObservable.clear();
             }
 
@@ -123,24 +131,42 @@ const GUI = {
             }
         }
 
+        GUI.tilePanel.blockLayout = true;
+        GUI.tilePanel.columns = dim;
+
+        const centerIndex = dim % 2 === 0 ? -1 : Math.floor(dim * dim / 2);
+
         for (let i = 0; i < dim * dim; i++) {
-            const tile = BABYLON.GUI.Button.CreateSimpleButton("tile" + i, "?");
+            const tile = new BABYLON.GUI.HolographicButton("tile" + i);
             tile.width = "100px";
             tile.height = "100px";
             tile.color = "white";
-            tile.background = "grey";
             tile.thickness = 0;
             tile.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
             tile.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-
             tile.left = i % 2 === 0 ? "-50px" : "50px";
             tile.top = i < 2 ? "90px" : "190px";
 
+            GUI.tiles.push(tile);
+            GUI.tilePanel.addControl(tile);
+
+            if (i === centerIndex) {
+                tile.isVisible = false;
+                continue;
+            }
+
+            tile.plateMaterial.alphaMode = BABYLON.Engine.ALPHA_ONEONE;
+            tile.plateMaterial.diffuseColor = BABYLON.Color3.FromHexString("#555555");
+
             tile.onPointerUpObservable.add(() => onTileClick(tile));
 
-            GUI.texture.addControl(tile);
-            GUI.tiles.push(tile);
+            const textBlock = new BABYLON.GUI.TextBlock();
+            textBlock.text = "?";
+            textBlock.color = "white";
+            textBlock.fontSize = 64;
+            tile.content = textBlock;
         }
+        GUI.tilePanel.blockLayout = false;
     },
     // The current wager block
     wagerBlock: null,
@@ -177,11 +203,12 @@ const GUI = {
     guiGoNext: () => {
         // Kill the last round's tiles
         for (const tile of GUI.tiles) {
-            GUI.texture.removeControl(tile);
+            GUI.manager.removeControl(tile);
+            tile.dispose();
         }
 
         // Render the tiles
-        GUI.renderTiles(2);
+        GUI.renderTiles(game.currentRound.rollsIndex + 2);
     },
     // The next round button
     nextRoundButton: null,
@@ -197,11 +224,23 @@ const GUI = {
 
 const createScene = () => {
     // Create the scene camera
-    GUI.camera = new BABYLON.FreeCamera("main_camera", new BABYLON.Vector3(0, 5, -10), scene);
-    GUI.camera.setTarget(BABYLON.Vector3.Zero());
+    GUI.camera = new BABYLON.ArcRotateCamera("cam", -Math.PI / 2, Math.PI / 2, 10, BABYLON.Vector3.Zero());
+    GUI.camera.wheelDeltaPercentage = 0.01;
+    // TODO: Remove this
+    GUI.camera.attachControl(canvas, true);
 
-    // Initialize the GUI
+    GUI.anchor = new BABYLON.TransformNode("");
+
+    // Initialize the GUI manager
     GUI.texture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+    GUI.manager = new BABYLON.GUI.GUI3DManager(scene);
+
+    // Create the tile panel
+    GUI.tilePanel = new BABYLON.GUI.CylinderPanel();
+    GUI.tilePanel.margin = 0.3;
+    GUI.tilePanel.linkToTransformNode(GUI.anchor);
+    GUI.tilePanel.position.z = -2;
+    GUI.manager.addControl(GUI.tilePanel);
 
     // Initial state of the multiplier block
     GUI.multiplierBlock = new BABYLON.GUI.TextBlock();
