@@ -12,11 +12,11 @@ Initial Wager: Players start by placing their wager. This amount is the baseline
 
 - The Grid of Mystery: After the wager, players are presented with a grid of face-down tiles. The number of tiles can vary depending on the game's difficulty level.
 
-- Choosing Tiles: Each turn, the player selects a tile to reveal its hidden value. These values can be positive multipliers (e.g., x2, x3, x5, etc.) or negative traps.
+- Choosing Tiles: Each turn, the player selects a tile to reveal its hidden value. These values can be positive multipliers (e.g., x0.30, x0.42, x0.69, etc.) or negative traps.
 
-- Multiplier Effect: When a player reveals a positive multiplier, their current wager is multiplied accordingly. For instance, if the wager is $10 and they reveal a x3 tile, their new total is $30.
+- Multiplier Effect: When a player reveals a positive multiplier, their current wager is multiplied accordingly. For instance, if the wager is $10 and they reveal a x0.69 tile, their new total is $16.9
 
-- The Risk of Negatives: Hidden among the multipliers are negative tiles. Revealing a negative tile (e.g., -x2, -x3) means the game ends immediately, and the player loses their wager.
+- The Risk of Negatives: Hidden among the multipliers are negative tiles. Revealing a negative tile (e.g., -x0.69, -x0.4) means the multiplier goes down and the money earned by the player is lost. If the multiplier itself goes into negative values, then the game ends and the player loses.
 
 - Cashing Out: After each successful tile reveal, players have the option to 'cash out' and take their current winnings, or risk continuing for higher multipliers.
 
