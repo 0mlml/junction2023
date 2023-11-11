@@ -34,7 +34,7 @@ func randomCookie(n int) string {
 func serveHome(c *gin.Context) {
 	// Give bro a cookie
 	cookie := randomCookie(32)
-	c.SetCookie("brocookie", cookie, 0, "/", "localhost", false, false)
+	c.SetCookie("brocookie", cookie, 0, "/", "j2023.mlml.dev", false, false)
 
 	// Put them in the user map
 	game.AddUser(cookie)
