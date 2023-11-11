@@ -12,6 +12,10 @@ window.addEventListener("resize", () => {
 });
 
 const game = {
+    money: {
+        balance: 0,
+        lastChange: 0,
+    },
     currentRound: {
         // The hashchain start point for the round
         chainStartPoint: 0,
@@ -37,7 +41,9 @@ const game = {
      */
     fetchMoney: () => {
         return fetch("/money").then(async response => {
-            return await response.json();
+            const { money, baseMoney } = await response.json();
+            game.money.balance = money;
+            return { money, baseMoney };
         });
     },
     /**
@@ -77,6 +83,8 @@ const game = {
         game.currentRound.lastRoll = roll;
         game.currentRound.rollsIndex++;
         game.currentRound.multiplier += roll;
+        game.money.balance += roll * game.currentRound.amount;
+        game.money.lastChange = roll * game.currentRound.amount;
         return {
             roll,
             newMultiplier: game.currentRound.multiplier,
@@ -88,6 +96,8 @@ const game = {
 const GUI = {
     // The main camera
     camera: null,
+    // The bg camera
+    bgCamera: null,
     // Anchor
     anchor: null,
     // 3D Manager
@@ -105,19 +115,26 @@ const GUI = {
      * @param {number} dim The dimension of the grid of tiles
      */
     renderTiles: (dim) => {
-        const onTileClick = (tile) => {
+        const onTileClick = async (tile) => {
             const tilesNotClicked = GUI.tiles.filter(t => t !== tile);
 
             const roll = game.incrementRound();
+
+            GUI.updateMoneyCounter();
 
             tile.content.text = `x${roll.roll.toFixed(2)}`;
             tile.plateMaterial.diffuseColor = roll.roll < 0 ? BABYLON.Color3.FromHexString("#AA5555") : BABYLON.Color3.FromHexString("#55AA55");
             tile.onPointerUpObservable.clear();
 
             for (const otherTile of tilesNotClicked) {
-                otherTile.content.text = `x${((Math.random() - 0.3) * -2).toFixed(2)}`
+                otherTile.content.text = `x${((Math.random() * 1.5) - 0.5).toFixed(2)}`
                 otherTile.plateMaterial.diffuseColor = BABYLON.Color3.FromHexString("#222");
                 otherTile.onPointerUpObservable.clear();
+            }
+
+            if (roll.roll > 0) {
+                await GUI.tileExplosion();
+                GUI.tilePanel.position.z = -2;
             }
 
             GUI.multiplierBlock.text = `x${roll.newMultiplier.toFixed(2)}`;
@@ -125,7 +142,6 @@ const GUI = {
             if (roll.didExplode) {
                 alert(`gg pal`);
             } else if (game.currentRound.rollsIndex >= game.currentRound.rolls.length) {
-                alert(`You won ${game.currentRound.net.toFixed(2)}!`);
             } else {
                 GUI.nextRoundButton.isVisible = true;
             }
@@ -134,12 +150,13 @@ const GUI = {
         GUI.tilePanel.blockLayout = true;
         GUI.tilePanel.columns = dim;
 
+
         const centerIndex = dim % 2 === 0 ? -1 : Math.floor(dim * dim / 2);
 
         for (let i = 0; i < dim * dim; i++) {
             const tile = new BABYLON.GUI.HolographicButton("tile" + i);
-            tile.width = "100px";
-            tile.height = "100px";
+            tile.width = "200px";
+            tile.height = "200px";
             tile.color = "white";
             tile.thickness = 0;
             tile.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_CENTER;
@@ -179,14 +196,17 @@ const GUI = {
         const wager = parseFloat(GUI.wagerBlock.text);
         if (isNaN(wager) || wager <= 0) return;
 
-        let round = null;
         try {
-            round = await game.requestRound(wager);
+            await game.requestRound(wager);
         } catch (err) {
             console.error(err);
             alert(`An error occurred: ${err.message}`);
             return;
         }
+
+        game.money.balance -= wager;
+
+        GUI.updateMoneyCounter();
 
         // Hide the wager block and play button
         GUI.wagerBlock.isVisible = false;
@@ -194,7 +214,6 @@ const GUI = {
 
         // Update multiplier block
         GUI.multiplierBlock.text = `x0.0`;
-
         GUI.guiGoNext();
     },
     /**
@@ -219,6 +238,65 @@ const GUI = {
         GUI.nextRoundButton.isVisible = false;
 
         GUI.guiGoNext();
+    },
+    /**
+     * @description Tile explosion animation
+     * @returns {Promise<void>}
+     */
+    tileExplosion: async () => {
+        return new Promise(r => {
+            const start = performance.now();
+            const duration = 200;
+            const scalar = 3;
+
+            const initialZ = GUI.tilePanel.position.z; // Fetch the initial z position
+
+            const render = () => {
+                const now = performance.now();
+                const progress = (now - start) / duration * Math.PI;
+
+                // Interpolate z position
+                GUI.tilePanel.position.z = initialZ * Math.sin(progress) * scalar;
+
+                if ((now - start) / duration < 1) {
+                    requestAnimationFrame(render);
+                } else {
+                    GUI.tilePanel.position.z = initialZ; // Reset to initial z position
+                    r();
+                }
+            }
+            render();
+        });
+    },
+    // The money display
+    moneyDisplay: null,
+    // The money counter
+    moneyCounter: null,
+    /**
+     * @description Updates the money counter
+     */
+    updateMoneyCounter: async () => {
+        GUI.moneyDisplay.text = `${game.money.balance.toFixed(2)}€`;
+
+        GUI.moneyCounter.text = `${game.currentRound.amount}€x${game.currentRound.multiplier.toFixed(2)} = ${(game.currentRound.multiplier * game.currentRound.amount).toFixed(2)}€`;
+
+        if (game.money.lastChange === 0) return;
+
+        const moneyChangeBlock = new BABYLON.GUI.TextBlock();
+        moneyChangeBlock.text = `${game.money.lastChange > 0 ? "+" : ""}${game.money.lastChange.toFixed(2)}€`;
+        moneyChangeBlock.color = game.money.lastChange > 0 ? "green" : "red";
+        moneyChangeBlock.fontSize = 24;
+        moneyChangeBlock.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+        moneyChangeBlock.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
+        moneyChangeBlock.top = "-40%";
+        GUI.texture.addControl(moneyChangeBlock);
+
+        game.money.lastChange = 0;
+
+        setTimeout(() => {
+            GUI.texture.removeControl(moneyChangeBlock);
+            moneyChangeBlock.dispose();
+        }, 1500);
     }
 }
 
@@ -226,28 +304,61 @@ const createScene = () => {
     // Create the scene camera
     GUI.camera = new BABYLON.ArcRotateCamera("cam", -Math.PI / 2, Math.PI / 2, 10, BABYLON.Vector3.Zero());
     GUI.camera.wheelDeltaPercentage = 0.01;
-    // TODO: Remove this
-    GUI.camera.attachControl(canvas, true);
 
     GUI.anchor = new BABYLON.TransformNode("");
 
-    // Initialize the GUI manager
+    // Make a bg camera to render the GUI in front
+    GUI.bgCamera = new BABYLON.ArcRotateCamera("bgcam", -Math.PI / 2, Math.PI / 2, 10, BABYLON.Vector3.Zero());
     GUI.texture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
+    GUI.texture.layer.layerMask = 1 << 7;
+    GUI.camera.layerMask = 1 << 7;
+
+    // Initialize the GUI manager
     GUI.manager = new BABYLON.GUI.GUI3DManager(scene);
+    GUI.manager.utilityLayer.setRenderCamera(GUI.camera);
+
+    scene.activeCameras = [GUI.camera, GUI.bgCamera];
 
     // Create the tile panel
     GUI.tilePanel = new BABYLON.GUI.CylinderPanel();
     GUI.tilePanel.margin = 0.3;
     GUI.tilePanel.linkToTransformNode(GUI.anchor);
-    GUI.tilePanel.position.z = -2;
     GUI.manager.addControl(GUI.tilePanel);
+    GUI.tilePanel.position.z = -2;
+
+     // Initial state of the money display
+     GUI.moneyDisplay = new BABYLON.GUI.TextBlock();
+     GUI.moneyDisplay.text = "0.00€";
+     GUI.moneyDisplay.color = "white";
+     GUI.moneyDisplay.background = "black";
+     GUI.moneyDisplay.fontSize = 24;
+     GUI.moneyDisplay.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+     GUI.moneyDisplay.left = "40%";
+     GUI.moneyDisplay.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+     GUI.moneyDisplay.top = "-45%";
+     GUI.texture.addControl(GUI.moneyDisplay);
+ 
+     // Initial state of the money counter
+     GUI.moneyCounter = new BABYLON.GUI.TextBlock();
+     GUI.moneyCounter.text = "0.00€";
+     GUI.moneyCounter.color = "white";
+     GUI.moneyCounter.background = "black";
+     GUI.moneyCounter.fontSize = 24;
+     GUI.moneyCounter.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+     GUI.moneyCounter.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+     GUI.moneyCounter.top = "-45%";
+     GUI.texture.addControl(GUI.moneyCounter);
+ 
+     game.fetchMoney().then(_ => {
+         GUI.updateMoneyCounter();
+     });
 
     // Initial state of the multiplier block
     GUI.multiplierBlock = new BABYLON.GUI.TextBlock();
-    GUI.multiplierBlock.text = "xX.X"; // Placeholder text
+    GUI.multiplierBlock.text = "x0.0"; // Placeholder text
     GUI.multiplierBlock.color = "white"; // Font color
     GUI.multiplierBlock.background = "black"; // Background color
-    GUI.multiplierBlock.fontSize = 24;
+    GUI.multiplierBlock.fontSize = 72;
     GUI.multiplierBlock.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_LEFT;
     GUI.multiplierBlock.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_TOP;
     GUI.texture.addControl(GUI.multiplierBlock);
@@ -290,6 +401,8 @@ const createScene = () => {
     GUI.nextRoundButton.isVisible = false;
     GUI.nextRoundButton.onPointerUpObservable.add(GUI.onNextRoundButtonClick);
     GUI.texture.addControl(GUI.nextRoundButton);
+
+    console.info("Initialized GUI")
 
     return scene;
 }
