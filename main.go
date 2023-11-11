@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"luckydog/ballcancer/game"
 	"luckydog/ballcancer/net"
 
@@ -16,5 +17,6 @@ func main() {
 
 	r := gin.Default()
 	net.ServeStatic(r)
-	r.Run(":80")
+
+	log.Fatal(r.Run(":8080"))
 }
