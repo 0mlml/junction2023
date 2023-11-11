@@ -147,7 +147,13 @@ func (g *Game) Evaluate() float64 {
 	for _, roll := range g.Rolls {
 		total += roll
 	}
-	return total * float64(g.Amount)
+	res := total * float64(g.Amount)
+
+	if res < 0 {
+		res = 0
+	}
+
+	return res
 }
 
 // Run a simulation of the game.
