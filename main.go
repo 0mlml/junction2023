@@ -12,8 +12,9 @@ func main() {
 
 	go game.UserCuller()
 
+	gin.SetMode(gin.ReleaseMode)
+
 	r := gin.Default()
 	net.ServeStatic(r)
-
-	r.Run()
+	r.Run(":80")
 }

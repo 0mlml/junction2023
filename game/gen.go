@@ -116,7 +116,9 @@ var (
 
 func NewGame(amount float64) *Game {
 	if chainIndex >= chainLength {
-		panic("🚨🚨 bruhhhhhhhh🤯🤯🤯🤯🤯🤯🤯 🚨🚨")
+		// This condition should be handled better in an actual environment. This would cause the game to be predictable. as it's just a repeat of the previous games.
+		fmt.Println("Hash chain exhausted, setting index to 0.")
+		chainIndex = 0
 	}
 
 	chainLock.Lock()

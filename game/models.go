@@ -1,6 +1,9 @@
 package game
 
-import "time"
+import (
+	"log"
+	"time"
+)
 
 const (
 	baseMoney = 10000
@@ -37,6 +40,7 @@ func (u *User) ShouldCull() bool {
 
 func GetUserByCookie(cookie string) *User {
 	if user, ok := users[cookie]; ok {
+		user.Death = time.Now().Unix() + 120
 		return user
 	}
 	return &User{}
@@ -45,7 +49,7 @@ func GetUserByCookie(cookie string) *User {
 func AddUser(cookie string) {
 	users[cookie] = &User{
 		Balance: baseMoney,
-		Death:   time.Now().Unix() + 60,
+		Death:   time.Now().Unix() + 120,
 	}
 }
 
@@ -56,10 +60,15 @@ func RemoveUserByCookie(cookie string) {
 func UserCuller() {
 	for {
 		time.Sleep(time.Second * 15)
+		delAmt := 0
 		for k, v := range users {
 			if v.ShouldCull() {
 				delete(users, k)
+				delAmt++
 			}
+		}
+		if delAmt > 0 {
+			log.Printf("Culled %d users\n", delAmt)
 		}
 	}
 }

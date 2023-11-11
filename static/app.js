@@ -83,7 +83,6 @@ const game = {
         game.currentRound.lastRoll = roll;
         game.currentRound.rollsIndex++;
         game.currentRound.multiplier += roll;
-        game.money.balance += roll * game.currentRound.amount;
         game.money.lastChange = roll * game.currentRound.amount;
         return {
             roll,
@@ -140,8 +139,25 @@ const GUI = {
             GUI.multiplierBlock.text = `x${roll.newMultiplier.toFixed(2)}`;
 
             if (roll.didExplode) {
-                alert(`gg pal`);
+                alert(`Instant death condition (multiplier < 0) reached. You lost ${game.currentRound.amount}€.)`);
+                
+                GUI.wagerBlock.top = "-150px";
+                GUI.wagerBlock.isVisible = true;
+                GUI.playButton.top = "150px";
+                GUI.playButton.isVisible = true;
+
+                game.fetchMoney().then(_ => {
+                    GUI.updateMoneyCounter();
+                });
             } else if (game.currentRound.rollsIndex >= game.currentRound.rolls.length) {
+                GUI.wagerBlock.top = "-150px";
+                GUI.wagerBlock.isVisible = true;
+                GUI.playButton.top = "150px";
+                GUI.playButton.isVisible = true;
+
+                game.fetchMoney().then(_ => {
+                    GUI.updateMoneyCounter();
+                });
             } else {
                 GUI.nextRoundButton.isVisible = true;
             }
@@ -303,15 +319,20 @@ const GUI = {
 const createScene = () => {
     // Create the scene camera
     GUI.camera = new BABYLON.ArcRotateCamera("cam", -Math.PI / 2, Math.PI / 2, 10, BABYLON.Vector3.Zero());
+    GUI.bgCamera = new BABYLON.ArcRotateCamera("bgcam", -Math.PI / 2, Math.PI / 2, 10, BABYLON.Vector3.Zero());
+
+    const renderPipeline = new BABYLON.DefaultRenderingPipeline("renderingPipeline", true, scene, [GUI.camera]);
+    renderPipeline.samples = 4;
+    renderPipeline.fxaaEnabled = true;
+
     GUI.camera.wheelDeltaPercentage = 0.01;
 
     GUI.anchor = new BABYLON.TransformNode("");
 
     // Make a bg camera to render the GUI in front
-    GUI.bgCamera = new BABYLON.ArcRotateCamera("bgcam", -Math.PI / 2, Math.PI / 2, 10, BABYLON.Vector3.Zero());
     GUI.texture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
     GUI.texture.layer.layerMask = 1 << 7;
-    GUI.camera.layerMask = 1 << 7;
+    GUI.bgCamera.layerMask = 1 << 7;
 
     // Initialize the GUI manager
     GUI.manager = new BABYLON.GUI.GUI3DManager(scene);
@@ -326,32 +347,32 @@ const createScene = () => {
     GUI.manager.addControl(GUI.tilePanel);
     GUI.tilePanel.position.z = -2;
 
-     // Initial state of the money display
-     GUI.moneyDisplay = new BABYLON.GUI.TextBlock();
-     GUI.moneyDisplay.text = "0.00€";
-     GUI.moneyDisplay.color = "white";
-     GUI.moneyDisplay.background = "black";
-     GUI.moneyDisplay.fontSize = 24;
-     GUI.moneyDisplay.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-     GUI.moneyDisplay.left = "40%";
-     GUI.moneyDisplay.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
-     GUI.moneyDisplay.top = "-45%";
-     GUI.texture.addControl(GUI.moneyDisplay);
- 
-     // Initial state of the money counter
-     GUI.moneyCounter = new BABYLON.GUI.TextBlock();
-     GUI.moneyCounter.text = "0.00€";
-     GUI.moneyCounter.color = "white";
-     GUI.moneyCounter.background = "black";
-     GUI.moneyCounter.fontSize = 24;
-     GUI.moneyCounter.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
-     GUI.moneyCounter.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
-     GUI.moneyCounter.top = "-45%";
-     GUI.texture.addControl(GUI.moneyCounter);
- 
-     game.fetchMoney().then(_ => {
-         GUI.updateMoneyCounter();
-     });
+    // Initial state of the money display
+    GUI.moneyDisplay = new BABYLON.GUI.TextBlock();
+    GUI.moneyDisplay.text = "0.00€";
+    GUI.moneyDisplay.color = "white";
+    GUI.moneyDisplay.background = "black";
+    GUI.moneyDisplay.fontSize = 24;
+    GUI.moneyDisplay.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+    GUI.moneyDisplay.left = "40%";
+    GUI.moneyDisplay.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+    GUI.moneyDisplay.top = "-45%";
+    GUI.texture.addControl(GUI.moneyDisplay);
+
+    // Initial state of the money counter
+    GUI.moneyCounter = new BABYLON.GUI.TextBlock();
+    GUI.moneyCounter.text = "0.00€";
+    GUI.moneyCounter.color = "white";
+    GUI.moneyCounter.background = "black";
+    GUI.moneyCounter.fontSize = 24;
+    GUI.moneyCounter.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+    GUI.moneyCounter.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+    GUI.moneyCounter.top = "-45%";
+    GUI.texture.addControl(GUI.moneyCounter);
+
+    game.fetchMoney().then(_ => {
+        GUI.updateMoneyCounter();
+    });
 
     // Initial state of the multiplier block
     GUI.multiplierBlock = new BABYLON.GUI.TextBlock();
