@@ -64,6 +64,7 @@ func hexToFloat(hexStr string) float64 {
 // Roll 2 - -0.2x to 0.8x
 // Roll 3 - -0.3x to 0.25x
 // Roll 4 and subsequent rolls - -0.3x to (0.3x - 0.05x * (rollNumber - 2)); subtract 0.05x for each subsequent roll
+// 5 percent chance of a boost of 1.5x to 2x the regular max.
 func CalculateMultiplier(rollNumber int, hash string) float64 {
 	randomFloat := hexToFloat(hash)
 
