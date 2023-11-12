@@ -1,8 +1,9 @@
 package main
 
 import (
-	"luckydog/ballcancer/game"
-	"luckydog/ballcancer/net"
+	"log"
+	"luckydog/junction2023/game"
+	"luckydog/junction2023/net"
 
 	"github.com/gin-gonic/gin"
 )
@@ -15,5 +16,5 @@ func main() {
 	r := gin.Default()
 	net.ServeStatic(r)
 
-	r.Run()
+	log.Fatal(r.Run(":8080"))
 }

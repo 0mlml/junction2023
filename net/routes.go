@@ -4,16 +4,19 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"log"
-	"luckydog/ballcancer/game"
+	"luckydog/junction2023/game"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 )
 
 func ServeStatic(r *gin.Engine) {
+	r.StaticFile("/babylon.js", "./static/babylon.js")
+	r.StaticFile("/babylon.gui.js", "./static/babylon.gui.js")
 	r.StaticFile("/app.js", "./static/app.js")
 	r.StaticFile("/script.js", "./static/script.js")
 	r.StaticFile("/styles.css", "./static/styles.css")
+	r.StaticFile("/flare.png", "./static/flare.png")
 
 	r.LoadHTMLFiles("./static/index.html")
 	r.GET("/", serveHome)
@@ -34,7 +37,7 @@ func randomCookie(n int) string {
 func serveHome(c *gin.Context) {
 	// Give bro a cookie
 	cookie := randomCookie(32)
-	c.SetCookie("brocookie", cookie, 0, "/", "localhost", false, false)
+	c.SetCookie("brocookie", cookie, 0, "/", "j2023.mlml.dev", false, false)
 
 	// Put them in the user map
 	game.AddUser(cookie)
@@ -63,7 +66,7 @@ func handlePlay(c *gin.Context) {
 	if err != nil {
 		// give buddy a cookie
 		cookie = randomCookie(32)
-		c.SetCookie("brocookie", cookie, 0, "/", "localhost", false, false)
+		c.SetCookie("brocookie", cookie, 0, "/", "j2023.mlml.dev", false, false)
 	}
 
 	playRequest := PlayRequest{}
@@ -73,8 +76,14 @@ func handlePlay(c *gin.Context) {
 		return
 	}
 
-	if playRequest.Amount < 1 {
+	if playRequest.Amount <= 0 {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "amount must be positive"})
+		return
+	}
+
+	if game.GetUserByCookie(cookie).Death < 0 {
+		// c.Redirect(http.StatusTemporaryRedirect, "/")
+		c.JSON(http.StatusTemporaryRedirect, gin.H{"error": "data not found. please refresh"})
 		return
 	}
 

@@ -83,7 +83,6 @@ const game = {
         game.currentRound.lastRoll = roll;
         game.currentRound.rollsIndex++;
         game.currentRound.multiplier += roll;
-        game.money.balance += roll * game.currentRound.amount;
         game.money.lastChange = roll * game.currentRound.amount;
         return {
             roll,
@@ -133,6 +132,7 @@ const GUI = {
             }
 
             if (roll.roll > 0) {
+                GUI.createNewParticleSys(BABYLON.Vector3.Zero());
                 await GUI.tileExplosion();
                 GUI.tilePanel.position.z = -2;
             }
@@ -140,8 +140,25 @@ const GUI = {
             GUI.multiplierBlock.text = `x${roll.newMultiplier.toFixed(2)}`;
 
             if (roll.didExplode) {
-                alert(`gg pal`);
+                alert(`Instant death condition (multiplier < 0) reached. You lost ${game.currentRound.amount}€.)`);
+
+                GUI.wagerBlock.top = "-150px";
+                GUI.wagerBlock.isVisible = true;
+                GUI.playButton.top = "150px";
+                GUI.playButton.isVisible = true;
+
+                game.fetchMoney().then(_ => {
+                    GUI.updateMoneyCounter();
+                });
             } else if (game.currentRound.rollsIndex >= game.currentRound.rolls.length) {
+                GUI.wagerBlock.top = "-150px";
+                GUI.wagerBlock.isVisible = true;
+                GUI.playButton.top = "150px";
+                GUI.playButton.isVisible = true;
+
+                game.fetchMoney().then(_ => {
+                    GUI.updateMoneyCounter();
+                });
             } else {
                 GUI.nextRoundButton.isVisible = true;
             }
@@ -297,21 +314,84 @@ const GUI = {
             GUI.texture.removeControl(moneyChangeBlock);
             moneyChangeBlock.dispose();
         }, 1500);
-    }
+    },
+    /**
+     * @description Try to go next using keybind
+     */
+    tryGoNext: () => {
+        if (GUI.playButton.isVisible) {
+            GUI.playButton.onPointerUpObservable.notifyObservers();
+        }
+        if (GUI.nextRoundButton.isVisible) {
+            GUI.nextRoundButton.onPointerUpObservable.notifyObservers();
+        }
+        if (GUI.tiles.length > 0) {
+            GUI.tiles[Math.floor(Math.random() * GUI.tiles.length)].onPointerUpObservable.notifyObservers();
+        }
+    },
+    /**
+     * @description Create a new ephemeral particle emmiter
+     * @param {BABYLON.Vector3} pos The pos to emit from
+     * @param {number} duration The duration of the emmiter
+     * @returns {BABYLON.ParticleSystem} The particle system
+     */
+    createNewParticleSys: (pos) => {
+        const particleSystem = new BABYLON.GPUParticleSystem("particles", 2000, scene);
+        particleSystem.particleTexture = new BABYLON.Texture("/flare.png", scene);
+
+        const box = BABYLON.MeshBuilder.CreateBox("cyl", { width: 1, height: 0.2, depth: 1 }, scene)
+        box.position = pos.subtract(new BABYLON.Vector3(0, 0, -4));
+        box.rotate(new BABYLON.Vector3(1, 0, 0), Math.PI / 2)
+        box.isVisible = false;
+        particleSystem.emitter = box;
+
+        particleSystem.color1 = BABYLON.Color4.FromHexString("#55AA55");
+        particleSystem.color2 = BABYLON.Color4.FromHexString("#55AA55");
+        particleSystem.colorDead = BABYLON.Color4.FromHexString("#55AA55");
+        particleSystem.minSize = 0.3;
+        particleSystem.maxSize = 0.5;
+        particleSystem.minLifeTime = 0.3;
+        particleSystem.maxLifeTime = 1.3;
+        particleSystem.emitRate = 1000;
+        particleSystem.minEmitPower = 20;
+        particleSystem.maxEmitPower = 30;
+        particleSystem.updateSpeed = 0.005;
+
+        const shapeEmitter = particleSystem.createCylinderEmitter(1, 1, 0)
+        shapeEmitter.direction1 = new BABYLON.Vector3(0, 1, 0)
+        shapeEmitter.direction2 = new BABYLON.Vector3(0, 1, 0)
+
+        particleSystem.start();
+
+        setTimeout(() => {
+            particleSystem.stop();
+            setTimeout(() => {
+                box.dispose();
+                particleSystem.dispose();
+            }, 1000);
+        }, 1000)
+
+        return particleSystem;
+    },
 }
 
 const createScene = () => {
     // Create the scene camera
     GUI.camera = new BABYLON.ArcRotateCamera("cam", -Math.PI / 2, Math.PI / 2, 10, BABYLON.Vector3.Zero());
+    GUI.bgCamera = new BABYLON.ArcRotateCamera("bgcam", -Math.PI / 2, Math.PI / 2, 10, BABYLON.Vector3.Zero());
+
+    const renderPipeline = new BABYLON.DefaultRenderingPipeline("renderingPipeline", true, scene, [GUI.camera]);
+    renderPipeline.samples = 4;
+    renderPipeline.fxaaEnabled = true;
+
     GUI.camera.wheelDeltaPercentage = 0.01;
 
     GUI.anchor = new BABYLON.TransformNode("");
 
     // Make a bg camera to render the GUI in front
-    GUI.bgCamera = new BABYLON.ArcRotateCamera("bgcam", -Math.PI / 2, Math.PI / 2, 10, BABYLON.Vector3.Zero());
     GUI.texture = BABYLON.GUI.AdvancedDynamicTexture.CreateFullscreenUI("UI");
     GUI.texture.layer.layerMask = 1 << 7;
-    GUI.camera.layerMask = 1 << 7;
+    GUI.bgCamera.layerMask = 1 << 7;
 
     // Initialize the GUI manager
     GUI.manager = new BABYLON.GUI.GUI3DManager(scene);
@@ -326,32 +406,32 @@ const createScene = () => {
     GUI.manager.addControl(GUI.tilePanel);
     GUI.tilePanel.position.z = -2;
 
-     // Initial state of the money display
-     GUI.moneyDisplay = new BABYLON.GUI.TextBlock();
-     GUI.moneyDisplay.text = "0.00€";
-     GUI.moneyDisplay.color = "white";
-     GUI.moneyDisplay.background = "black";
-     GUI.moneyDisplay.fontSize = 24;
-     GUI.moneyDisplay.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
-     GUI.moneyDisplay.left = "40%";
-     GUI.moneyDisplay.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
-     GUI.moneyDisplay.top = "-45%";
-     GUI.texture.addControl(GUI.moneyDisplay);
- 
-     // Initial state of the money counter
-     GUI.moneyCounter = new BABYLON.GUI.TextBlock();
-     GUI.moneyCounter.text = "0.00€";
-     GUI.moneyCounter.color = "white";
-     GUI.moneyCounter.background = "black";
-     GUI.moneyCounter.fontSize = 24;
-     GUI.moneyCounter.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
-     GUI.moneyCounter.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
-     GUI.moneyCounter.top = "-45%";
-     GUI.texture.addControl(GUI.moneyCounter);
- 
-     game.fetchMoney().then(_ => {
-         GUI.updateMoneyCounter();
-     });
+    // Initial state of the money display
+    GUI.moneyDisplay = new BABYLON.GUI.TextBlock();
+    GUI.moneyDisplay.text = "0.00€";
+    GUI.moneyDisplay.color = "white";
+    GUI.moneyDisplay.background = "black";
+    GUI.moneyDisplay.fontSize = 24;
+    GUI.moneyDisplay.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_CENTER;
+    GUI.moneyDisplay.left = "40%";
+    GUI.moneyDisplay.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+    GUI.moneyDisplay.top = "-45%";
+    GUI.texture.addControl(GUI.moneyDisplay);
+
+    // Initial state of the money counter
+    GUI.moneyCounter = new BABYLON.GUI.TextBlock();
+    GUI.moneyCounter.text = "0.00€";
+    GUI.moneyCounter.color = "white";
+    GUI.moneyCounter.background = "black";
+    GUI.moneyCounter.fontSize = 24;
+    GUI.moneyCounter.horizontalAlignment = BABYLON.GUI.Control.HORIZONTAL_ALIGNMENT_RIGHT;
+    GUI.moneyCounter.verticalAlignment = BABYLON.GUI.Control.VERTICAL_ALIGNMENT_BOTTOM;
+    GUI.moneyCounter.top = "-45%";
+    GUI.texture.addControl(GUI.moneyCounter);
+
+    game.fetchMoney().then(_ => {
+        GUI.updateMoneyCounter();
+    });
 
     // Initial state of the multiplier block
     GUI.multiplierBlock = new BABYLON.GUI.TextBlock();
@@ -401,6 +481,19 @@ const createScene = () => {
     GUI.nextRoundButton.isVisible = false;
     GUI.nextRoundButton.onPointerUpObservable.add(GUI.onNextRoundButtonClick);
     GUI.texture.addControl(GUI.nextRoundButton);
+
+    // Register keybindings
+    document.addEventListener('keydown', (event) => {
+        if (event.code === "Space") {
+            GUI.tryGoNext();
+        }
+        if (event.code === "KeyR") {
+            GUI.tryGoNext();
+        }
+        if (event.code === "Enter") {
+            GUI.tryGoNext();
+        }
+    });
 
     console.info("Initialized GUI")
 
